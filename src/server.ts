@@ -4,7 +4,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { createRepositorySchema } from "./tools/create-repository.js";
 import { octokit } from "./github/client.js";
 import { listRepositoriesSchema } from "./tools/list-repositories.js";
-
+import { getRepositorySchema } from "./tools/get-repository.js";
+import { createIssueSchema } from "./tools/create-issue.js";
 
 const server = new McpServer({
     name: "github-ai-agent",
@@ -47,43 +48,123 @@ server.tool(
 );
 
 server.tool(
-    "list_repositories",
-    "Lista los repositorios del usuario autenticado en GitHub",
-    listRepositoriesSchema.shape,
-    async () => {
-        try {
-            const response = await octokit.rest.repos.listForAuthenticatedUser({
-                sort: "updated",
-                direction: "desc",
-            });
+  "list_repositories",
+  "Lista los repositorios públicos de un usuario de GitHub",
+  listRepositoriesSchema.shape,
+  async (args) => {
+    try {
+      const response = await octokit.rest.repos.listForUser({
+        username: args.owner,
+      });
 
-            const repositories = response.data
-                .map((repo) => `- ${repo.full_name}`)
-                .join("\n");
+      const repositories = response.data
+        .map((repo) => `- ${repo.full_name}`)
+        .join("\n");
 
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: repositories || "No se encontraron repositorios.",
-                    },
-                ],
-            };
-        } catch (error) {
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: `No se pudieron obtener los repositorios: ${error instanceof Error ? error.message : "Error desconocido"
-                            }`,
-                    },
-                ],
-                isError: true,
-            };
-        }
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Repositorios de ${args.owner}:\n${repositories}`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No se pudieron obtener los repositorios: ${
+              error instanceof Error ? error.message : "Error desconocido"
+            }`,
+          },
+        ],
+        isError: true,
+      };
     }
+  }
 );
 
+server.tool(
+  "get_repository",
+  "Obtiene información de un repositorio de GitHub",
+  getRepositorySchema.shape,
+  async (args) => {
+    try {
+      const response = await octokit.rest.repos.get({
+        owner: args.owner,
+        repo: args.repo,
+      });
+
+      const repository = response.data;
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: [
+              `Repositorio: ${repository.full_name}`,
+              `Descripción: ${repository.description ?? "Sin descripción"}`,
+              `Privado: ${repository.private ? "Sí" : "No"}`,
+              `Stars: ${repository.stargazers_count}`,
+              `Forks: ${repository.forks_count}`,
+              `URL: ${repository.html_url}`,
+            ].join("\n"),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No se pudo obtener el repositorio ${args.owner}/${args.repo}: ${
+              error instanceof Error ? error.message : "Error desconocido"
+            }`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
+server.tool(
+  "create_issue",
+  "Crea un nuevo issue en un repositorio de GitHub",
+  createIssueSchema.shape,
+  async (args) => {
+    try {
+      const response = await octokit.rest.issues.create({
+        owner: args.owner,
+        repo: args.repo,
+        title: args.title,
+        body: args.body,
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Issue creado correctamente: ${response.data.html_url}`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No se pudo crear el issue en ${args.owner}/${args.repo}: ${
+              error instanceof Error ? error.message : "Error desconocido"
+            }`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

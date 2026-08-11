@@ -14,8 +14,13 @@ const transport = new StdioClientTransport({
 await client.connect(transport);
 
 const result = await client.callTool({
-    name: "list_repositories",
-    arguments: {},
+    name: "create_issue",
+    arguments: {
+        owner: "octocat",
+        repo: "Hello-World",
+        title: "Found a bug",
+        body: "I'm having a problem with this.",
+    },
 });
 
 console.error(result);

@@ -14,12 +14,12 @@ const transport = new StdioClientTransport({
 await client.connect(transport);
 
 const result = await client.callTool({
-    name: "close_issue",
+    name: "list_issues",
     arguments: {
     owner: "octocat",
     repo: "Hello-World",
-    issue_number: 10819,
-    title: "Bug corregido"
+    state: "closed",
+
 },
 });
 

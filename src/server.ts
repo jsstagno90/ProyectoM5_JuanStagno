@@ -8,6 +8,7 @@ import { getRepositorySchema } from "./tools/get-repository.js";
 import { createIssueSchema } from "./tools/create-issue.js";
 import { updateIssueSchema } from "./tools/update-issue.js";
 import { closeIssueSchema } from "./tools/close-issue.js";
+import { listIssuesSchema } from "./tools/list-issues.js";
 
 const server = new McpServer({
     name: "github-ai-agent",
@@ -243,6 +244,46 @@ server.tool(
   }
 );
 
+server.tool(
+  "list_issues",
+  "Lista los issues de un repositorio de GitHub",
+  listIssuesSchema.shape,
+  async (args) => {
+    try {
+      const response = await octokit.rest.issues.listForRepo({
+        owner: args.owner,
+        repo: args.repo,
+        state: args.state,
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: response.data
+              .map(
+                (issue) =>
+                  `#${issue.number} - ${issue.title}\nEstado: ${issue.state}\nURL: ${issue.html_url}`
+              )
+              .join("\n\n"),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No se pudieron obtener los issues: ${
+              error instanceof Error ? error.message : "Error desconocido"
+            }`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

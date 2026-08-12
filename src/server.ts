@@ -6,6 +6,8 @@ import { octokit } from "./github/client.js";
 import { listRepositoriesSchema } from "./tools/list-repositories.js";
 import { getRepositorySchema } from "./tools/get-repository.js";
 import { createIssueSchema } from "./tools/create-issue.js";
+import { updateIssueSchema } from "./tools/update-issue.js";
+import { closeIssueSchema } from "./tools/close-issue.js";
 
 const server = new McpServer({
     name: "github-ai-agent",
@@ -165,6 +167,82 @@ server.tool(
     }
   }
 );
+
+server.tool(
+  "update_issue",
+  "Actualiza un issue existente en GitHub",
+  updateIssueSchema.shape,
+  async (args) => {
+    try {
+      const response = await octokit.rest.issues.update({
+        owner: args.owner,
+        repo: args.repo,
+        issue_number: args.issue_number,
+        title: args.title,
+        body: args.body,
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Issue actualizado correctamente: ${response.data.html_url}`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No se pudo actualizar el issue: ${
+              error instanceof Error ? error.message : "Error desconocido"
+            }`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
+server.tool(
+  "close_issue",
+  "Cierra un issue existente en GitHub",
+  closeIssueSchema.shape,
+  async (args) => {
+    try {
+      const response = await octokit.rest.issues.update({
+        owner: args.owner,
+        repo: args.repo,
+        issue_number: args.issue_number,
+        state: "closed",
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Issue cerrado correctamente: ${response.data.html_url}`,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No se pudo cerrar el issue: ${
+              error instanceof Error ? error.message : "Error desconocido"
+            }`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

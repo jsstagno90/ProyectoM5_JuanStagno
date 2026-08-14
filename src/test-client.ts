@@ -8,19 +8,17 @@ const client = new Client({
 
 const transport = new StdioClientTransport({
     command: "tsx",
-    args: ["src/server.ts"],
+    args: ["src/index.ts"],
 });
 
 await client.connect(transport);
 
 const result = await client.callTool({
-    name: "list_issues",
+    name: "list_commits",
     arguments: {
-    owner: "octocat",
-    repo: "Hello-World",
-    state: "closed",
-
-},
+        owner: "jsstagno90",
+        repo: "artesalandia",
+    },
 });
 
 console.error(result);

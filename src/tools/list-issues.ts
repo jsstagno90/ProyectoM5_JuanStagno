@@ -5,3 +5,6 @@ export const listIssuesSchema = z.object({
   repo: z.string().describe("Nombre del repositorio"),
   state: z.enum(["open", "closed", "all"]).default("open").describe("Estado de los issues a listar (open, closed, all)"),
 });
+
+
+

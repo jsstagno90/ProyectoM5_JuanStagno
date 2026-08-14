@@ -9,6 +9,7 @@ import { createIssueSchema } from "./tools/create-issue.js";
 import { updateIssueSchema } from "./tools/update-issue.js";
 import { closeIssueSchema } from "./tools/close-issue.js";
 import { listIssuesSchema } from "./tools/list-issues.js";
+import { listCommitsSchema } from "./tools/list-commits.js";
 import { getGithubErrorMessage } from "./github/errors.js";
 
 
@@ -273,4 +274,46 @@ server.tool(
         }
     }
 );
+
+server.tool(
+    "list_commits",
+    "Lista los commits más recientes de un repositorio de GitHub",
+    listCommitsSchema.shape,
+    async (args) => {
+        try {
+            const response = await octokit.rest.repos.listCommits({
+                owner: args.owner,
+                repo: args.repo,
+                per_page: args.per_page ?? 10,
+            });
+
+            const commits = response.data
+                .map(
+                    (commit) =>
+                        `- SHA: ${commit.sha.substring(0, 7)}\n  Autor: ${commit.commit.author?.name ?? "Desconocido"}\n  Fecha: ${commit.commit.author?.date ?? "Desconocida"}\n  Mensaje: ${commit.commit.message.split("\n")[0]}`
+                )
+                .join("\n\n");
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Commits de ${args.owner}/${args.repo}:\n\n${commits}`,
+                    },
+                ],
+            };
+        } catch (error) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Error al listar los commits: ${getGithubErrorMessage(error)}`,
+                    },
+                ],
+                isError: true,
+            };
+        }
+    }
+);
+
 

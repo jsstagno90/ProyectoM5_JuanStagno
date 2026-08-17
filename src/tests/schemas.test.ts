@@ -34,7 +34,7 @@ describe("createRepositorySchema", () => {
     });
 
     expect(result.success).toBe(true);
-  });
+  } );
 });
 
 describe("listCommitsSchema", () => {

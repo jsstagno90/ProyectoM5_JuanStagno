@@ -17,7 +17,7 @@ const result = await client.callTool({
     name: "list_commits",
     arguments: {
         owner: "jsstagno90",
-        repo: "artesalandia",
+        repo: "ProyectoM5_JuanStagno",
     },
 });
 
